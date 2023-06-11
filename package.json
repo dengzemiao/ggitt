@@ -1,0 +1,20 @@
+{
+  "scripts": {
+    "test": "gulp && cd dist/ && npm link",
+    "build": "gulp",
+    "publish:build": "npm run build && cd dist/ && npm publish",
+    "publish:cnj": "nrm use cnj && npm run build && cd dist/ && npm publish",
+    "publish:ctt": "nrm use cnj && npm run build && cd dist/ && npm publish && nrm use ctt",
+    "publish:npm": "nrm use cnj && npm run build && cd dist/ && npm publish && nrm use npm"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.21.4",
+    "@babel/preset-env": "^7.21.4",
+    "del": "^7.0.0",
+    "gulp": "^4.0.2",
+    "gulp-babel": "^8.0.0",
+    "gulp-clean": "^0.4.0",
+    "gulp-rename": "^2.0.0",
+    "gulp-uglify": "^3.0.2"
+  }
+}
