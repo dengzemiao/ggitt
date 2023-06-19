@@ -148,7 +148,7 @@ program
   .description('提交当前分支到远程仓库，并可在提交完成后，自动切换到指定分支')
   // 配置
   .option('-g, --go [branch]', '合并提交结束后，切换到指定分支')
-  .option('-s, --stash [type]', '使用 stash 暂存区方式合并代码，如果手动终止了脚本，需要使用 $ git pop 放出暂存区的代码，以免丢失', config.stash)
+  .option('-s, --stash [type]', '使用 stash 暂存区方式合并代码，如果手动终止了脚本，需检查是否执行了 $ git stash pop 命令，没有执行需要手动执行放出暂存区的代码，以免丢失', config.stash)
   .option('-m, --message [msg]', '提交日志信息', `${ctime} 提交优化`)
   // 事件
   .action((option) => {
@@ -181,7 +181,7 @@ program
   // 配置
   .option('-t, --to [branch]', '合并到指定的分支', config.to)
   .option('-g, --go [branch]', '合并提交结束后，切换到指定分支', cb)
-  .option('-s, --stash [type]', '使用 stash 暂存区方式合并代码，如果手动终止了脚本，需要使用 $ git pop 放出暂存区的代码，以免丢失', config.stash)
+  .option('-s, --stash [type]', '使用 stash 暂存区方式合并代码，如果手动终止了脚本，需检查是否执行了 $ git stash pop 命令，没有执行需要手动执行放出暂存区的代码，以免丢失', config.stash)
   .option('-m, --message [msg]', '提交日志信息', ` 提交优化`)
   // 事件
   .action((option) => {
@@ -296,7 +296,7 @@ function pushCurrentBranch(option) {
   // 是否使用暂存区
   if (isTure(option.stash)) {
     // 输出日志
-    BgWarning(`==== 注意：使用 stash 暂存代码，如果手动终止了命令，需使用 $ git pop 释放出暂存区代码，以免丢失！`)
+    BgWarning(`==== 注意：使用 stash 暂存代码，如果手动终止了脚本，需检查是否执行了 $ git stash pop 命令，没有执行需要手动执行放出暂存区的代码，以免丢失！`)
     // 输出日志
     BgInfo(`========================================== git stash`)
     // 暂存代码
