@@ -43,22 +43,22 @@ function exec(cmd, config) {
   })
   // 执行失败
   if (res.code != 0 && conf.check) {
-    // 错误消息
-    const errMsg = conf.errMsg || `${cmd} 执行失败`
     // 如果处于禁止输出状态，强行输出错误结果
     if (conf.silent) {
       // 输出错误结果
       console.log(rmEnter(res.stdout))
     }
     // 输出错误提示
-    BgError(`========================================== Error：${errMsg}`)
+    showError(cmd, conf.errMsg)
     // 结束脚本提示
     if (conf.exitMsg) {
       // 以错误结果展示
       BgError(conf.exitMsg)
     }
     // 停止脚本
-    exit(res.code)
+    if (conf.exit === undefined || conf.exit === true) {
+      exit(res.code)
+    }
   }
   // 返回结果
   return res
@@ -66,6 +66,13 @@ function exec(cmd, config) {
 // 结束脚本 code: 0 结束 1 失败
 function exit(code) {
   process.exit(code)
+}
+// 显示错误
+function showError(cmd, msg) {
+  // 错误消息
+  const errMsg = msg || `${cmd} 执行失败`
+  // 输出错误提示
+  BgError(`========================================== Error：${errMsg}`)
 }
 // 移除头尾空格与换行符
 function rmEnter(text) {
@@ -110,6 +117,8 @@ function initData() {
   execSilentCheck('git --version', { errMsg: '请检查 Git 是否安装！' })
   // 检查是否支持 Git 仓库
   execSilentCheck('git branch', { errMsg: '请检查当前项目是否支持了 Git 仓库！' })
+  // 同步 Git 最新数据
+  execSilent('get fetch')
   // 本地分支列表
   lbs = execSilentCheck('git branch').stdout.match(/(?<=  ).*?(?=[ |\n])/g) || []
   // 把当前分支添加进去
@@ -139,6 +148,29 @@ function nowDate() {
   return `${year}-${month}-${day} ${hour}:${minute}:${second}`
 }
 
+// ================================================== pull
+
+program
+  // 命令
+  .command('pull')
+  // 描述
+  .description('同步当前分支的远程数据，如果未建立远程分支跟踪，会自动跟踪远程分支，并拉取最新数据')
+  // 事件
+  .action((option) => {
+    // 返回分支
+    const gb = option.go
+    // 输出日志
+    BgSuccess('========================================== 开始拉取 ==========================================')
+    // 初始化
+    initData()
+    // 跟踪远程分支
+    execSilent(`git branch --set-upstream-to=origin/${cb} ${cb}`)
+    // 拉取分支
+    pullBranch(cb)
+    // 执行完成
+    BgSuccess('========================================== 拉取结束 ==========================================')
+  })
+
 // ================================================== push
 
 program
@@ -148,7 +180,7 @@ program
   .description('提交当前分支到远程仓库，并可在提交完成后，自动切换到指定分支')
   // 配置
   .option('-g, --go [branch]', '合并提交结束后，切换到指定分支')
-  .option('-s, --stash [type]', '使用 stash 暂存区方式合并代码，如果手动终止了脚本，需检查是否执行了 $ git stash pop 命令，没有执行需要手动执行放出暂存区的代码，以免丢失', config.stash)
+  .option('-s, --stash [type]', '使用 stash 暂存区方式合并代码，如手动终止脚本、执行失败停止脚本，需检查是否执行了 $ git stash pop 命令，没有执行需要手动执行放出暂存区的代码，以免丢失', config.stash)
   .option('-m, --message [msg]', '提交日志信息', `${ctime} 提交优化`)
   // 事件
   .action((option) => {
@@ -181,7 +213,7 @@ program
   // 配置
   .option('-t, --to [branch]', '合并到指定的分支', config.to)
   .option('-g, --go [branch]', '合并提交结束后，切换到指定分支', cb)
-  .option('-s, --stash [type]', '使用 stash 暂存区方式合并代码，如果手动终止了脚本，需检查是否执行了 $ git stash pop 命令，没有执行需要手动执行放出暂存区的代码，以免丢失', config.stash)
+  .option('-s, --stash [type]', '使用 stash 暂存区方式合并代码，如手动终止脚本、执行失败停止脚本，需检查是否执行了 $ git stash pop 命令，没有执行需要手动执行放出暂存区的代码，以免丢失', config.stash)
   .option('-m, --message [msg]', '提交日志信息', ` 提交优化`)
   // 事件
   .action((option) => {
@@ -293,10 +325,10 @@ function pushCurrentBranch(option) {
   var isStash = false
   // 需要提交代码（可能刚才解决冲突）
   var isNeedsMerge = false
-  // 是否使用暂存区
-  if (isTure(option.stash)) {
+  // 是否使用暂存区 && 有远程分支
+  if (isTure(option.stash) && isrb) {
     // 输出日志
-    BgWarning(`==== 注意：使用 stash 暂存代码，如果手动终止了脚本，需检查是否执行了 $ git stash pop 命令，没有执行需要手动执行放出暂存区的代码，以免丢失！`)
+    BgWarning(`==== 注意：使用 stash 暂存代码，在有保存本地内容的情况下，如手动终止脚本、执行失败停止脚本，需检查是否执行了 $ git stash pop 命令，没有执行需要手动执行放出暂存区的代码，以免丢失！`)
     // 输出日志
     BgInfo(`========================================== git stash`)
     // 暂存代码
@@ -311,14 +343,13 @@ function pushCurrentBranch(option) {
     }
     // 暂存代码后
     if (isStash) {
-      // 输出日志
-      BgInfo(`========================================== git pull origin ${cb}`)
       // 拉取最新代码
-      execCheck(`git pull origin ${cb}`)
-      // 输出日志
-      BgInfo(`========================================== git stash pop`)
-      // 释放暂存代码
-      execCheck(`git stash pop`)
+      pullBranch(cb, () => {
+        // 输出日志
+        BgInfo(`========================================== git stash pop`)
+        // 释放暂存代码
+        execCheck(`git stash pop`)
+      })
     }
   }
   // 输出日志
@@ -329,12 +360,10 @@ function pushCurrentBranch(option) {
   BgInfo(`========================================== git commit -m "${option.message}"`)
   // 提交到本地
   exec(`git commit -m "${option.message}"`)
-  // 有远程分支
+  // 有远程分支 && 无暂存代码 && 无需合并 && 非修复状态
   if (isrb && !isStash && !isNeedsMerge && !option.fix) {
-    // 输出日志
-    BgInfo(`========================================== git pull origin ${cb}`)
     // 拉取最新代码
-    execCheck(`git pull origin ${cb}`)
+    pullBranch(cb)
   }
   // 输出日志
   BgInfo(`========================================== git push origin ${cb}`)
@@ -354,13 +383,8 @@ function mergeToBranch(option) {
     BgInfo(`========================================== git checkout ${tb}`)
     // 切换到指定目标分支
     execCheck(`git checkout ${tb}`)
-    // 目标分支有远程分支
-    if (rbs.includes(tb)) {
-      // 输出日志
-      BgInfo(`========================================== git pull origin ${tb}`)
-      // 拉取最新代码
-      execCheck(`git pull origin ${tb}`)
-    }
+    // 拉取最新代码
+    pullBranch(tb)
     // 输出日志
     BgInfo(`========================================== git merge ${cb}`)
     // 合并当前分支
@@ -384,9 +408,36 @@ function mergeToBranch(option) {
   }
 }
 
+// 拉取分支
+function pullBranch(cb, callback) {
+  // 输出日志
+  BgInfo(`========================================== git pull origin ${cb}`)
+  // 拉取最新代码
+  const cmd = `git pull origin ${cb}`
+  const res = exec(cmd)
+  // 拉取失败，根据情况处理
+  if (res.code != 0) {
+    // 没有远程分支
+    if (res.stderr.includes('无法找到远程引用') || res.stderr.includes("couldn't find remote ref")) {
+      // 继续执行脚本
+      if (callback) { callback(res) }
+    } else {
+      // 输出错误提示
+      showError(cmd)
+      // 回调
+      if (callback) { callback(res) }
+      // 结束脚本
+      exit(res.code)
+    }
+  } else {
+    // 回调
+    if (callback) { callback(res) }
+  }
+}
+
 // 修复分支偏移
 function fixBranch(option) {
-  // 存在远程分支的情况，才允许修复
+  // 有远程分支，才允许修复
   if (isrb) {
     // 修复分支
     const fb = `${fbPrefix}${cb}`
@@ -401,11 +452,9 @@ function fixBranch(option) {
     // 输出日志
     BgInfo(`========================================== git checkout origin/${cb} -b ${cb}`)
     // 拉取当前分支
-    execCheck(`git checkout ${cb}`)
-    // 输出日志
-    BgInfo(`========================================== git pull origin ${cb}`)
+    execCheck(`git checkout origin/${cb} -b ${cb}`)
     // 拉取最新代码
-    execCheck(`git pull origin ${cb}`)
+    pullBranch(cb)
     // 输出日志
     BgInfo(`========================================== git merge ${fb}`)
     // 合并修复分支
