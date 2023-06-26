@@ -57,8 +57,12 @@
 
   # ggit 支持的参数
   Options:
-    -v               output the version number
     -V, --version    output the version number
+    -v               output the version number
+    -d [branch]      移除指定本地分支
+    -dr [branch]     移除指定远程分支
+    -b [branch]      以当前分支为基础，新建分支
+    -g [branch]      切换到指定分支，如本地没有会拉取远程分支
     -h, --help       display help for command
 
   # ggit 支持的子命令
@@ -91,7 +95,27 @@
 
 ## 三、使用
 
-- `ggit` 目前支持的子命令列表大纲
+- `ggit` 支持的属性
+
+  ```sh
+  # 切换到指定分支
+  $ ggit -g 2.3.4
+
+  # 移除远程分支
+  $ ggit -dr 2.3.4
+
+  ....
+  ```
+
+  | `ggit`       | 含义                                     | 支持传参 | 默认值 |
+  | ------------ | ---------------------------------------- | -------- | ------ |
+  | -v \| -V     | 查看版本                                 | 无       | 无     |
+  | -g [branch]  | 切换到指定分支，如本地没有会拉取远程分支 | 无       | 无     |
+  | -b [branch]  | 以当前分支为基础，新建分支               | 无       | 无     |
+  | -d [branch]  | 移除指定本地分支                         | 无       | 无     |
+  | -dr [branch] | 移除指定远程分支                         | 无       | 无     |
+
+- `ggit` 目前支持的子命令
 
   ```sh
   # 1、拉取当前分支远程代码，会自动建立远程分支跟踪

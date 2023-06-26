@@ -194,10 +194,8 @@ program
     pushCurrentBranch(option)
     // 指定分支有值
     if (gb) {
-      // 输出日志
-      BgInfo(`========================================== git checkout ${gb}`)
       // 切换到指定分支
-      execCheck(`git checkout ${gb}`)
+      goBranch(gb)
     }
     // 执行完成
     BgSuccess('========================================== 提交结束 ==========================================')
@@ -379,10 +377,8 @@ function mergeToBranch(option) {
   const tb = option.to
   // 当前是否在目标分支
   if (cb != tb) {
-    // 输出日志
-    BgInfo(`========================================== git checkout ${tb}`)
     // 切换到指定目标分支
-    execCheck(`git checkout ${tb}`)
+    goBranch(tb)
     // 拉取最新代码
     pullBranch(tb)
     // 输出日志
@@ -393,17 +389,13 @@ function mergeToBranch(option) {
     BgInfo(`========================================== git push origin ${tb}`)
     // 提交到远程分支
     execCheck(`git push origin ${tb}`)
-    // 输出日志
-    BgInfo(`========================================== git checkout ${gb}`)
     // 切换回到开发分支
-    execCheck(`git checkout ${gb}`)
+    goBranch(gb)
   } else {
     // 指定分支有值
     if (gb) {
-      // 输出日志
-      BgInfo(`========================================== git checkout ${gb}`)
       // 切换到指定分支
-      execCheck(`git checkout ${gb}`)
+      goBranch(gb)
     }
   }
 }
@@ -441,18 +433,12 @@ function fixBranch(option) {
   if (isrb) {
     // 修复分支
     const fb = `${fbPrefix}${cb}`
-    // 输出日志
-    BgInfo(`========================================== git checkout -b ${fb}`)
     // 新建修复分支
-    execCheck(`git checkout -b ${fb}`)
-    // 输出日志
-    BgInfo(`========================================== git branch -D ${cb}`)
+    newBranch(fb)
     // 移除当前分支
-    execCheck(`git branch -D ${cb}`)
-    // 输出日志
-    BgInfo(`========================================== git checkout origin/${cb} -b ${cb}`)
+    delBranch(cb)
     // 拉取当前分支
-    execCheck(`git checkout origin/${cb} -b ${cb}`)
+    goBranch(cb)
     // 拉取最新代码
     pullBranch(cb)
     // 输出日志
@@ -482,10 +468,52 @@ function delFixBranch(rbs, force) {
   const fb = `${fbPrefix}${cb}`
   // (本地存在修复分支 && 远程不存在修复分支) || 强制
   if ((lbs.includes(fb) && !rbs.includes(fb)) || force) {
-    // 输出日志
-    BgInfo(`========================================== git branch -D ${fb}`)
     // 移除修复分支
-    execCheck(`git branch -D ${fb}`)
+    delBranch(fb)
+  }
+}
+
+// 移除分支（isr：远程/本地）
+function delBranch(cb, isr) {
+  if (isr) {
+    // 输出日志
+    BgInfo(`========================================== git push origin -d ${cb}`)
+    // 移除远程分支
+    execCheck(`git push origin -d ${cb}`)
+  } else {
+    // 输出日志
+    BgInfo(`========================================== git branch -D ${cb}`)
+    // 移除本地分支
+    execCheck(`git branch -D ${cb}`)
+  }
+}
+
+// 新建分支
+function newBranch(cb) {
+  // 输出日志
+  BgInfo(`========================================== git checkout -b ${cb}`)
+  // 新建分支
+  execCheck(`git checkout -b ${cb}`)
+}
+
+// 切换分支
+function goBranch(cb) {
+  // 输出日志
+  BgInfo(`========================================== git checkout ${cb}`)
+  // 切换/拉取分支
+  execCheck(`git checkout ${cb}`)
+}
+
+// 执行其他命令
+function execArgs(args) {
+  // 数组有值
+  if (args && args.length) {
+    // git 命令拼接
+    const gc = `git ${args.join(' ')}`
+    // 输出日志
+    BgInfo(`========================================== ${gc}`)
+    // 执行命令
+    exec(gc)
   }
 }
 
@@ -496,24 +524,31 @@ program
   .version(version)
   // 配置
   .option('-v', 'output the version number')
+  .option('-d [branch]', '移除指定本地分支')
+  .option('-dr [branch]', '移除指定远程分支')
+  .option('-b [branch]', '以当前分支为基础，新建分支')
+  .option('-g [branch]', '切换到指定分支，如本地没有会拉取远程分支')
   // 事件
   .action((opts, cmd) => {
-    // 版本号
+    // 区分属性
     if (opts.v) {
-      // 输出
+      // 版本号
       console.log(version)
+    } else if (opts.g) {
+      // 切换分支
+      goBranch(opts.g)
+    } else if (opts.b) {
+      // 新开分支
+      newBranch(opts.b)
+    } else if (opts.d) {
+      // 移除本地分支
+      delBranch(opts.d)
+    } else if (opts.Dr) {
+      // 移除远程分支
+      delBranch(opts.Dr, true)
     } else {
-      // 执行 git 命令
-      const args = cmd.args || []
-      // 数组有值
-      if (args.length) {
-        // git 命令拼接
-        const gc = `git ${args.join(' ')}`
-        // 输出日志
-        BgInfo(`========================================== ${gc}`)
-        // 移除当前分支
-        exec(gc)
-      }
+      // 执行其他命令
+      execArgs(cmd.args)
     }
   })
   // 解析参数
