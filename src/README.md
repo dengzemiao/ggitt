@@ -4,7 +4,7 @@
 
 - 博主就是一个喜欢用 `Git 命令` 的人，不太喜欢可视化的软件。所以使用 `Node` 对 `Git` 相关命令进行包装，做了一个自动化命令工具 [cggit](https://github.com/dengzemiao/cggit)。附 [GitHub 地址](https://github.com/dengzemiao/cggit)！
 
-- 在自动化命令的基础上，还额外支持所有不带参的 `git` 原生命令，下面使用中有说明什么叫不带参命令。
+- 在自动化命令的基础上，还额外支持所有不带参的 `git` 原生命令， 下面使用中有说明什么叫不带参命令。
 
 - 在执行 [cggit](https://github.com/dengzemiao/cggit) 自动化命令过程中遇到冲突，解决后，可继续执行一遍相关命令 `push， merge` 完成提交。
 
