@@ -527,7 +527,7 @@ program
   .option('-d [branch]', '移除指定本地分支')
   .option('-dr [branch]', '移除指定远程分支')
   .option('-b [branch]', '以当前分支为基础，新建分支')
-  .option('-g [branch]', '切换到指定分支，如本地没有会拉取远程分支')
+  .option('-c [branch]', '切换到指定分支，如本地没有会拉取远程分支')
   // 事件
   .action((opts, cmd) => {
     // 区分属性
