@@ -1,9 +1,13 @@
 {
   "name": "cggit",
-  "version": "2.2.1",
+  "version": "2.2.7",
   "description": "一个将 Git 提交、合并命令简化的小工具，一行命令搞定提交、合并、分支偏移。",
   "bin": {
     "ggit": "index.js"
+  },
+  "repository": {
+    "type": "Git",
+    "url": "https://github.com/dengzemiao/cggit.git"
   },
   "dependencies": {
     "chalk": "^4.1.2",
