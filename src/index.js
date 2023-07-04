@@ -534,9 +534,9 @@ program
     if (opts.v) {
       // 版本号
       console.log(version)
-    } else if (opts.g) {
+    } else if (opts.c) {
       // 切换分支
-      goBranch(opts.g)
+      goBranch(opts.c)
     } else if (opts.b) {
       // 新开分支
       newBranch(opts.b)
