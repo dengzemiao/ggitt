@@ -212,11 +212,13 @@ program
   .option('-t, --to [branch]', '合并到指定的分支', config.to)
   .option('-g, --go [branch]', '合并提交结束后，切换到指定分支', cb)
   .option('-s, --stash [type]', '使用 stash 暂存区方式合并代码，如手动终止脚本、执行失败停止脚本，需检查是否执行了 $ git stash pop 命令，没有执行需要手动执行放出暂存区的代码，以免丢失', config.stash)
-  .option('-m, --message [msg]', '提交日志信息', ` 提交优化`)
+  .option('-m, --message [msg]', '提交日志信息', `${ctime} 提交优化`)
   // 事件
   .action((option) => {
     // 输出日志
     BgSuccess('========================================== 开始合并 ==========================================')
+    // 同步冲突值
+    optionValue(['-g', '--go'], option, 'go')
     // 初始化
     initData()
     // 提交当前分支
@@ -517,6 +519,30 @@ function execArgs(args) {
   }
 }
 
+// 获取指令中的参数，当遇到重复指令冲突时，可使用进行获取
+function optionValue(keys, option, key) {
+  // 参数列表
+  const argv = process.argv
+  // 索引列表
+  const indexs = []
+  keys.forEach(key => {
+    indexs.push(argv.lastIndexOf(key))
+  })
+  // 最后的索引
+  const index = Math.max(...indexs)
+  // 是否有值
+  if (index != -1) {
+    // 取值
+    const value = argv[index + 1] || true
+    // 设置
+    option[key] = value
+    // 返回
+    return value
+  }
+  // 没值
+  return false
+}
+
 // ================================================== 收尾工作
 
 program
@@ -527,16 +553,16 @@ program
   .option('-d [branch]', '移除指定本地分支')
   .option('-dr [branch]', '移除指定远程分支')
   .option('-b [branch]', '以当前分支为基础，新建分支')
-  .option('-c [branch]', '切换到指定分支，如本地没有会拉取远程分支')
+  .option('-g, --go [branch]', '切换到指定分支，如本地没有会拉取远程分支')
   // 事件
   .action((opts, cmd) => {
     // 区分属性
     if (opts.v) {
       // 版本号
       console.log(version)
-    } else if (opts.c) {
+    } else if (opts.go) {
       // 切换分支
-      goBranch(opts.c)
+      goBranch(opts.go)
     } else if (opts.b) {
       // 新开分支
       newBranch(opts.b)
