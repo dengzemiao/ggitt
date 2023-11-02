@@ -498,6 +498,30 @@ function newBranch(cb) {
   execCheck(`git checkout -b ${cb}`)
 }
 
+// 所有分支列表
+function branchList() {
+  // 输出日志
+  BgInfo(`========================================== git branch -a`)
+  // 新建分支
+  execCheck(`git branch -a`)
+}
+
+// 本地分支列表
+function branchListLocal() {
+  // 输出日志
+  BgInfo(`========================================== git branch`)
+  // 新建分支
+  execCheck(`git branch`)
+}
+
+// 远程分支列表
+function branchListRemote() {
+  // 输出日志
+  BgInfo(`========================================== git branch -r`)
+  // 新建分支
+  execCheck(`git branch -r`)
+}
+
 // 切换分支
 function goBranch(cb) {
   // 输出日志
@@ -552,7 +576,10 @@ program
   .option('-v', 'output the version number')
   .option('-d [branch]', '移除指定本地分支')
   .option('-dr [branch]', '移除指定远程分支')
-  .option('-b [branch]', '以当前分支为基础，新建分支')
+  .option('-b [branch]', '[branch] 有值则以当前分支为基础新建分支；无值则列出当前分支')
+  .option('-bl', '列出本地分支')
+  .option('-br', '列出远程分支')
+  .option('-ba', '列出所有分支')
   .option('-g, --go [branch]', '切换到指定分支，如本地没有会拉取远程分支')
   // 事件
   .action((opts, cmd) => {
@@ -564,8 +591,22 @@ program
       // 切换分支
       goBranch(opts.go)
     } else if (opts.b) {
-      // 新开分支
-      newBranch(opts.b)
+      if (opts.b === true) {
+        // 当前分支
+        console.log(`* ${cb}`)
+      } else {
+        // 新开分支
+        newBranch(opts.b)
+      }
+    } else if (opts.Bl) {
+      // 本地分支列表
+      branchListLocal()
+    } else if (opts.Br) {
+      // 远程分支列表
+      branchListRemote()
+    } else if (opts.Ba) {
+      // 分支列表
+      branchList()
     } else if (opts.d) {
       // 移除本地分支
       delBranch(opts.d)
