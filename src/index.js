@@ -580,6 +580,7 @@ program
   .option('-bl', '列出本地分支')
   .option('-br', '列出远程分支')
   .option('-ba', '列出所有分支')
+  .option('-c, --checkout [branch]', '切换到指定分支，如本地没有会拉取远程分支')
   .option('-g, --go [branch]', '切换到指定分支，如本地没有会拉取远程分支')
   // 事件
   .action((opts, cmd) => {
@@ -590,6 +591,9 @@ program
     } else if (opts.go) {
       // 切换分支
       goBranch(opts.go)
+    } else if (opts.checkout) {
+      // 切换分支
+      goBranch(opts.checkout)
     } else if (opts.b) {
       if (opts.b === true) {
         // 当前分支
