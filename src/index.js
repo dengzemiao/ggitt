@@ -2,6 +2,8 @@
 
 // 处理命令
 const shell = require('shelljs')
+// 透传命令用（继承 TTY，保留颜色）
+const { spawnSync } = require('child_process')
 // 处理输出
 const chalk = require('chalk')
 // 处理文件
@@ -36,8 +38,13 @@ function execCheck(cmd, config) {
 function exec(cmd, config) {
   // 配置
   const conf = config || {}
+  // 非静默的 git 命令强制开启颜色（shelljs 无 TTY，git 默认关闭颜色）
+  let finalCmd = cmd
+  if (!conf.silent && cmd.startsWith('git ') && !cmd.startsWith('git -c ')) {
+    finalCmd = cmd.replace(/^git /, 'git -c color.ui=always ')
+  }
   // 执行命令
-  const res = shell.exec(cmd, {
+  const res = shell.exec(finalCmd, {
     // 不输出结果
     silent: conf.silent
   })
@@ -118,7 +125,7 @@ function initData() {
   // 检查是否支持 Git 仓库
   execSilentCheck('git branch', { errMsg: '请检查当前项目是否支持了 Git 仓库！' })
   // 同步 Git 最新数据
-  execSilent('get fetch')
+  execSilent('git fetch')
   // 本地分支列表
   lbs = execSilentCheck('git branch').stdout.match(/(?<=  ).*?(?=[ |\n])/g) || []
   // 把当前分支添加进去
@@ -252,6 +259,65 @@ program
     BgSuccess('========================================== 修复结束 ==========================================')
   })
 
+// ================================================== log
+
+program
+  // 命令
+  .command('log')
+  // 描述
+  .description('美化显示提交记录（graph + oneline + decorate），默认显示全部，支持 -n 指定条数')
+  // 配置
+  .option('-n, --number [count]', '显示最近 n 条记录')
+  // 事件
+  .action((option) => {
+    // 条数参数
+    const n = option.number ? `-n ${option.number}` : ''
+    // 拼接命令
+    const cmd = `git log --oneline --graph --decorate ${n}`.trim()
+    // 输出日志
+    BgInfo(`========================================== ${cmd}`)
+    // 执行命令
+    exec(cmd)
+  })
+
+// ================================================== merged
+
+program
+  // 命令
+  .command('merged')
+  // 描述
+  .description('查看哪些分支已经被指定分支合并，不传分支名则使用当前分支')
+  // 配置
+  .argument('[branch]', '目标分支名', null)
+  // 事件
+  .action((branch) => {
+    // 使用传入的分支名，否则用当前分支
+    const tb = branch || cb
+    // 输出日志
+    BgInfo(`========================================== git branch --merged ${tb}`)
+    // 执行命令
+    execCheck(`git branch --merged ${tb}`)
+  })
+
+// ================================================== nomerged
+
+program
+  // 命令
+  .command('nomerged')
+  // 描述
+  .description('查看哪些分支还没有被指定分支合并，不传分支名则使用当前分支')
+  // 配置
+  .argument('[branch]', '目标分支名', null)
+  // 事件
+  .action((branch) => {
+    // 使用传入的分支名，否则用当前分支
+    const tb = branch || cb
+    // 输出日志
+    BgInfo(`========================================== git branch --no-merged ${tb}`)
+    // 执行命令
+    execCheck(`git branch --no-merged ${tb}`)
+  })
+
 // ================================================== config
 
 program
@@ -360,6 +426,11 @@ function pushCurrentBranch(option) {
   BgInfo(`========================================== git commit -m "${option.message}"`)
   // 提交到本地
   exec(`git commit -m "${option.message}"`)
+  // 首次提交（root-commit）前 git branch 无输出，commit 后重新获取当前分支名
+  if (!cb) {
+    cb = (execSilent('git branch').stdout.match(/(?<=\* ).*/g) || [])[0]
+    isrb = rbs.includes(cb)
+  }
   // 有远程分支 && 无暂存代码 && 无需合并 && 非修复状态
   if (isrb && !isStash && !isNeedsMerge && !option.fix) {
     // 拉取最新代码
@@ -530,18 +601,6 @@ function goBranch(cb) {
   execCheck(`git checkout ${cb}`)
 }
 
-// 执行其他命令
-function execArgs(args) {
-  // 数组有值
-  if (args && args.length) {
-    // git 命令拼接
-    const gc = `git ${args.join(' ')}`
-    // 输出日志
-    BgInfo(`========================================== ${gc}`)
-    // 执行命令
-    exec(gc)
-  }
-}
 
 // 获取指令中的参数，当遇到重复指令冲突时，可使用进行获取
 function optionValue(keys, option, key) {
@@ -618,9 +677,22 @@ program
       // 移除远程分支
       delBranch(opts.Dr, true)
     } else {
-      // 执行其他命令
-      execArgs(cmd.args)
+      program.outputHelp()
     }
   })
-  // 解析参数
-  .parse(process.argv)
+
+// ggit 支持的子命令与选项
+const ggitCommands = ['pull', 'push', 'merge', 'fix', 'config', 'log', 'merged', 'nomerged', 'help']
+const ggitOptions = ['-v', '-V', '--version', '-d', '-dr', '-b', '-bl', '-br', '-ba', '-g', '--go', '-c', '--checkout', '-h', '--help']
+const firstArg = process.argv[2]
+
+// 非 ggit 命令直接透传给 git（使用 spawnSync 继承 TTY，保留颜色输出）
+if (firstArg && !ggitCommands.includes(firstArg) && !ggitOptions.includes(firstArg)) {
+  const args = process.argv.slice(2)
+  BgInfo(`========================================== git ${args.join(' ')}`)
+  const res = spawnSync('git', args, { stdio: 'inherit' })
+  process.exit(res.status || 0)
+}
+
+// 解析参数（ggit 内部命令）
+program.parse(process.argv)
