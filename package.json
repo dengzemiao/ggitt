@@ -3,7 +3,6 @@
     "test": "cd src/ && npm link",
     "build": "gulp",
     "push": "npm run build && cd dist/ && npm publish",
-    "push:cnj": "nrm use cnj && npm run build && cd dist/ && npm publish",
     "push:npm": "nrm use npm && npm run build && cd dist/ && npm publish"
   },
   "devDependencies": {
