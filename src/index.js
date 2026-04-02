@@ -1,8 +1,6 @@
 #!/usr/bin/env node
 
-// 处理命令
-const shell = require('shelljs')
-// 透传命令用（继承 TTY，保留颜色）
+// 执行命令（内置，无需第三方依赖）
 const { spawnSync } = require('child_process')
 // 处理输出
 const chalk = require('chalk')
@@ -38,16 +36,24 @@ function execCheck(cmd, config) {
 function exec(cmd, config) {
   // 配置
   const conf = config || {}
-  // 非静默的 git 命令强制开启颜色（shelljs 无 TTY，git 默认关闭颜色）
-  let finalCmd = cmd
-  if (!conf.silent && cmd.startsWith('git ') && !cmd.startsWith('git -c ')) {
-    finalCmd = cmd.replace(/^git /, 'git -c color.ui=always ')
+  let raw, res
+  if (conf.silent) {
+    // 静默模式：捕获输出，不显示（用于解析 stdout/stderr）
+    raw = spawnSync(cmd, { shell: true, encoding: 'utf8' })
+  } else if (conf.capture) {
+    // 捕获模式：捕获输出并手动打印（用于需要解析输出内容的显示命令）
+    raw = spawnSync(cmd, { shell: true, encoding: 'utf8' })
+    if (raw.stdout) process.stdout.write(raw.stdout)
+    if (raw.stderr) process.stderr.write(raw.stderr)
+  } else {
+    // 继承模式：直接继承 TTY（颜色、交互完整保留，不捕获）
+    raw = spawnSync(cmd, { shell: true, stdio: 'inherit' })
   }
-  // 执行命令
-  const res = shell.exec(finalCmd, {
-    // 不输出结果
-    silent: conf.silent
-  })
+  res = {
+    stdout: raw.stdout || '',
+    stderr: raw.stderr || '',
+    code: raw.status ?? (raw.error ? 1 : 0)
+  }
   // 执行失败
   if (res.code != 0 && conf.check) {
     // 如果处于禁止输出状态，强行输出错误结果
@@ -272,12 +278,12 @@ program
   .action((option) => {
     // 条数参数
     const n = option.number ? `-n ${option.number}` : ''
-    // 拼接命令
-    const cmd = `git log --oneline --graph --decorate ${n}`.trim()
-    // 输出日志
-    BgInfo(`========================================== ${cmd}`)
-    // 执行命令
-    exec(cmd)
+    // 禁用分页器（--no-pager），避免 less 拦截输出；强制颜色（color.ui=always）
+    const cmd = `git -c color.ui=always --no-pager log --oneline --graph --decorate ${n}`.trim()
+    // 输出日志（展示给用户的标题保持简洁）
+    BgInfo(`========================================== git log --oneline --graph --decorate${n ? ' ' + n : ''}`)
+    // 执行命令（capture 模式：捕获并打印，颜色保留）
+    exec(cmd, { capture: true })
   })
 
 // ================================================== merged
@@ -397,8 +403,8 @@ function pushCurrentBranch(option) {
     BgWarning(`==== 注意：使用 stash 暂存代码，在有保存本地内容的情况下，如手动终止脚本、执行失败停止脚本，需检查是否执行了 $ git stash pop 命令，没有执行需要手动执行放出暂存区的代码，以免丢失！`)
     // 输出日志
     BgInfo(`========================================== git stash`)
-    // 暂存代码
-    const stashStdout = exec('git stash').stdout
+    // 暂存代码（需要读取输出判断是否有内容被暂存）
+    const stashStdout = exec('git stash', { capture: true }).stdout
     // 有内容暂存了
     if (stashStdout.includes('保存工作目录和索引状态') || stashStdout.includes('Saved working directory and index state')) {
       isStash = true
@@ -477,9 +483,9 @@ function mergeToBranch(option) {
 function pullBranch(cb, callback) {
   // 输出日志
   BgInfo(`========================================== git pull origin ${cb}`)
-  // 拉取最新代码
+  // 拉取最新代码（需要读取 stderr 判断远程分支是否存在）
   const cmd = `git pull origin ${cb}`
-  const res = exec(cmd)
+  const res = exec(cmd, { capture: true })
   // 拉取失败，根据情况处理
   if (res.code != 0) {
     // 没有远程分支
