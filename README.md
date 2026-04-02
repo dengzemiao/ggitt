@@ -1,6 +1,6 @@
 ## 简介
 
-`ggitt` 是一个基于 Node 的 Git 命令简化工具，一行命令搞定提交、合并、分支管理。
+`ggitt` 是一个基于 Node 的 Git 命令增强工具，一键完成提交、合并、回滚、分支管理，完整兼容所有原生 git 命令。。
 
 核心特性：
 
@@ -49,6 +49,10 @@ ggit -v
 | `ggit pull` | 自动建立远程分支跟踪并拉取最新数据 |
 | `ggit push` | 一键完成 add → commit → pull → push |
 | `ggit merge` | push 后自动合并到目标分支，再切回当前分支 |
+| `ggit log` | 美化显示全部提交记录（graph + oneline + decorate） |
+| `ggit log -n <count>` | 显示最近 n 条提交记录 |
+| `ggit merged [branch]` | 查看已被指定分支合并的分支列表，不传则使用当前分支 |
+| `ggit nomerged [branch]` | 查看尚未被指定分支合并的分支列表，不传则使用当前分支 |
 | `ggit fix` | 修复分支偏移问题 |
 | `ggit config` | 查看/修改默认配置 |
 
@@ -156,6 +160,36 @@ ggit fix -g main
 | `-p, --push [type]` | 修复后提交到远程 | `true` |
 | `-g, --go [branch]` | 修复后切换到的分支 | - |
 | `-m, --message [msg]` | 提交日志信息 | `当前时间 修复分支偏移` |
+
+### log — 查看提交记录
+
+```sh
+# 显示全部提交记录（美化格式）
+ggit log
+
+# 显示最近 20 条
+ggit log -n 20
+```
+
+| 参数 | 说明 | 默认值 |
+| --- | --- | --- |
+| `-n, --number [count]` | 显示最近 n 条记录 | 全部 |
+
+### merged / nomerged — 查看合并状态
+
+```sh
+# 查看已被当前分支合并的分支
+ggit merged
+
+# 查看已被指定分支合并的分支
+ggit merged master
+
+# 查看尚未被当前分支合并的分支
+ggit nomerged
+
+# 查看尚未被指定分支合并的分支
+ggit nomerged master
+```
 
 ### config — 配置管理
 
