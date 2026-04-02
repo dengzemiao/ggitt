@@ -20,10 +20,12 @@ npm i -g ggitt
 验证安装：
 
 ```sh
+# 也支持 gitt -v
+# 同时支持 ggit 或 gitt 作为指令
 ggit -v
 ```
 
-> 如果安装失败，尝试切换到官方 npm 镜像：`npm config set registry https://registry.npmjs.org`
+> 如果安装失败，或安装不到最新版本，尝试切换到官方 npm 镜像：`npm config set registry https://registry.npmjs.org` 并配置命令行代理，即可正常完成最新版本安装。
 
 ## 指令总览
 
