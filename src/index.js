@@ -2,6 +2,8 @@
 
 // 执行命令（内置，无需第三方依赖）
 const { spawnSync } = require('child_process')
+// 全局禁用 git 分页器（less），所有 git 命令直接输出到终端
+process.env.GIT_PAGER = 'cat'
 // 处理输出
 const chalk = require('chalk')
 // 处理文件
@@ -278,12 +280,12 @@ program
   .action((option) => {
     // 条数参数
     const n = option.number ? `-n ${option.number}` : ''
-    // 禁用分页器（--no-pager），避免 less 拦截输出；强制颜色（color.ui=always）
-    const cmd = `git -c color.ui=always --no-pager log --oneline --graph --decorate ${n}`.trim()
-    // 输出日志（展示给用户的标题保持简洁）
-    BgInfo(`========================================== git log --oneline --graph --decorate${n ? ' ' + n : ''}`)
-    // 执行命令（capture 模式：捕获并打印，颜色保留）
-    exec(cmd, { capture: true })
+    // 拼接命令
+    const cmd = `git log --oneline --graph --decorate ${n}`.trim()
+    // 输出日志
+    BgInfo(`========================================== ${cmd}`)
+    // 执行命令
+    exec(cmd)
   })
 
 // ================================================== merged
